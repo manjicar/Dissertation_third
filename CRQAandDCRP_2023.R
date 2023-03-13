@@ -4,20 +4,14 @@ library(tidyr)
 library(Cairo)
 
 #************************************
-# Whole script loop for question j *
+# Function to Load Intervals *
 #************************************
-for (j in 1:5) {
-  j = 2
-#Load corresponding blue and red files for question j (if j=1 or 2 or 3 load video 1;
-#if j=4 or 5 load video 2)
-  if (j < 4) {
-    blue <- read.csv("Blue_Video_1.csv", header = TRUE)
-    red <- read.csv("Red_Video_1.csv", header = TRUE)
-  } else {
-    blue <- read.csv("Blue_Video_2.csv", header = TRUE)
-    red <- read.csv("Red_Video_2.csv", header = TRUE)
-  }
-  
+loadInterv <- function(color, index) {
+
+ fileName <- paste(color, "_", index)
+ dataF <- read.csv("fileName.csv", header = TRUE)
+ return(dataF)
+}
   blue <- select(blue, Sync.Time, Target.Code)
   red <- select(red, Sync.Time, Target.Code)
   
