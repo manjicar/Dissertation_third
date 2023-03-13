@@ -8,11 +8,14 @@ library(Cairo)
 #************************************
 loadInterv <- function(color, index) {
 
- fileName <- paste(color, "_", index)
- dataF <- read.csv("fileName.csv", header = TRUE)
- return(dataF)
+ #color <- as.character(color)  
+ fileName <- paste0(color, "_", index)
+ #dataF <- read.csv("fileName.csv", header = TRUE)
+ #return(dataF)
+ return(fileName)
 }
-  blue <- select(blue, Sync.Time, Target.Code)
+loadInterv('Red', 1)
+blue <- select(blue, Sync.Time, Target.Code)
   red <- select(red, Sync.Time, Target.Code)
   
   
