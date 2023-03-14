@@ -3,30 +3,20 @@ library(dplyr)
 library(tidyr)
 library(Cairo)
 
-#************************************
-# Function to Load Intervals *
-#************************************
+###******************************
+##* Function to Load Intervals *
+#******************************
 loadInterv <- function(color, index) {
 
- #color <- as.character(color)  
- fileName <- paste0(color, "_", index)
- #dataF <- read.csv("fileName.csv", header = TRUE)
- #return(dataF)
- return(fileName)
+ fileName <- paste0(color, "_", index, ".csv")
+ read.csv(fileName, header = TRUE) %>% select(Sync.Time, Target.Code) -> dataF
+ #dataF <- select(blue, Sync.Time, Target.Code)
+ return(dataF)
 }
+
 loadInterv('Red', 1)
-blue <- select(blue, Sync.Time, Target.Code)
-  red <- select(red, Sync.Time, Target.Code)
+
   
-  
-#Load corresponding orange file for question j
-  infile <- paste("Orange_Q", j, ".csv", sep = "")
-  #outvar <- paste("orange", j, sep = "")
-  #print(infile)
-  #print(outvar)
-  orange <- read.csv(infile, header = TRUE)
-  orange <- select(orange, Sync.Time, Target.Code)
- 
 
 #Split time into minutes, seconds, and tenths columns
 orange <- orange %>% separate(Sync.Time, c("Min", "Sec", "Tenth"))
