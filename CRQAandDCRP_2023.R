@@ -3,39 +3,30 @@ library(dplyr)
 library(tidyr)
 library(Cairo)
 
-###******************************
-##* Function to Load Intervals *
-#******************************
-loadInterv <- function(color, index) {
+#The function intervalPrep loads the analysis interval (data frame), selects 
+#the columns of interest (time and target code), splits and converts the 
+#time column into tenths of second (NOTE: divide tenth by 100 depending on 
+#format), and creates a quasi-continuous time column (with no gaps up to the
+#level of tenths of second)
+intervalPrep <- function(color, index) {
 
  fileName <- paste0(color, "_", index, ".csv")
- read.csv(fileName, header = TRUE) %>% select(Sync.Time, Target.Code) -> dataF
- #dataF <- select(blue, Sync.Time, Target.Code)
- return(dataF)
+ read.csv(fileName, header = TRUE) %>%
+   select(Sync.Time, Target.Code) %>%
+   separate(Sync.Time, c("Min", "Sec", "Tenth")) %>%
+   transmute(time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + 
+               as.numeric(Tenth)/100, 
+               Target = Target.Code) %>% drop_na(time) -> dataF
+ 
+ #Creates sequence of tenths of second with no gaps from the first to the last tenth of second
+ tenthSequence <- data.frame(time = seq(max(dataF$time) - dataF$time[1]) + dataF$time[1] - 1)
+ 
+ return(list(counter, dataF))
 }
 
-loadInterv('Red', 1)
+red <- intervalPrep('Red', 1)
 
   
-
-#Split time into minutes, seconds, and tenths columns
-orange <- orange %>% separate(Sync.Time, c("Min", "Sec", "Tenth"))
-blue <- blue %>% separate(Sync.Time, c("Min", "Sec", "Tenth"))
-red <- red %>% separate(Sync.Time, c("Min", "Sec", "Tenth"))
-
-
-#Create column with total time in tenths of seconds (divide tenth by 100 depending on format)
-orange <- transmute(orange, time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + as.numeric(Tenth), 
-                    Target = Target.Code)
-blue <- transmute(blue, time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + as.numeric(Tenth), 
-                  Target = Target.Code)
-red <- transmute(red, time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + as.numeric(Tenth), 
-                 Target = Target.Code)
-
-#Drop rows with time = NA
-orange <- drop_na(orange, time)
-blue <- drop_na(blue, time)
-red <- drop_na(red, time)
 
 
 ##Create a time column with no gaps (all single values in tenths of seconds) 
