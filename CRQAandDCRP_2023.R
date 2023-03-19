@@ -2,7 +2,78 @@ library(plyr)
 library(dplyr)
 library(tidyr)
 library(Cairo)
+<<<<<<< HEAD
 library(roxygen2)
+=======
+
+#The function intervalPrep loads the analysis interval (data frame), selects 
+#the columns of interest (time and target code), splits and converts the 
+#time column into tenths of second (NOTE: divide tenth by 100 depending on 
+#format), and creates a quasi-continuous time column (with no gaps up to the
+#level of tenths of second)
+intervalPrep <- function(color, index) {
+
+ fileName <- paste0(color, "_", index, ".csv")
+ read.csv(fileName, header = TRUE) %>%
+   select(Sync.Time, Target.Code) %>%
+   separate(Sync.Time, c("Min", "Sec", "Tenth")) %>%
+   transmute(time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + as.numeric(Tenth), 
+             Target = Target.Code) %>% drop_na(time) -> dataF
+ 
+ return(dataF)
+}
+
+intervalPrep('Red', 1)
+
+  
+
+
+##Create a time column with no gaps (all single values in tenths of seconds) 
+
+#Data frame with a counter for all tenths of seconds on the file
+counter_orange <- data.frame(time = seq(max(orange$time) - orange$time[1]) + orange$time[1] - 1)
+counter_blue <- data.frame(time = seq(max(blue$time) - blue$time[1]) + blue$time[1] - 1)
+counter_red <- data.frame(time = seq(max(red$time) - red$time[1]) + red$time[1] - 1)
+
+#Join data frames
+orange <- left_join(counter_orange, orange)
+blue <- left_join(counter_blue, blue)
+red <- left_join(counter_red, red)
+
+#Filling in missing target values
+for (i in 1:nrow(orange)) {
+  if (is.na(orange$Target[i])) {
+    orange$Target[i] <- orange$Target[i-1]
+  }
+}
+
+for (i in 1:nrow(blue)) {
+  if (is.na(blue$Target[i])) {
+    blue$Target[i] <- blue$Target[i-1]
+  }
+}
+
+for (i in 1:nrow(red)) {
+  if (is.na(red$Target[i])) {
+    red$Target[i] <- red$Target[i-1]
+  }
+}
+##Create time-series data frames containing the inner join of two (to remove target NAs)
+orangeBlue_ts <- inner_join(orange, blue, by = "time")
+orangeRed_ts <- inner_join(orange, red, by = "time")
+redBlue_tsb <- inner_join(orangeRed_ts, orangeBlue_ts, by = "time")
+redBlue_ts <- select(redBlue_tsb, time = time, Target.x = Target.y.x, Target.y = Target.y.y)
+
+##Create time-series data frames containing the inner join of three
+orangeBlueRed_ts <- inner_join(orangeBlue_ts, red, by = "time")
+orangeBlueRed_ts <- rename(orangeBlueRed_ts, Target.z = Target)
+
+
+#***************************************************
+#* Cross-Recurrence Quantification Analysis (CRQA) *
+#***************************************************
+
+>>>>>>> d92fa1d044bc47f8a5cff32f672ca267f8a1df52
 library(crqa)
 
 #' prepInterval
