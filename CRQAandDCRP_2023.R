@@ -2,126 +2,136 @@ library(plyr)
 library(dplyr)
 library(tidyr)
 library(Cairo)
-
-#The function intervalPrep loads the analysis interval (data frame), selects 
-#the columns of interest (time and target code), splits and converts the 
-#time column into tenths of second (NOTE: divide tenth by 100 depending on 
-#format), and creates a quasi-continuous time column (with no gaps up to the
-#level of tenths of second)
-intervalPrep <- function(color, index) {
-
- fileName <- paste0(color, "_", index, ".csv")
- read.csv(fileName, header = TRUE) %>%
-   select(Sync.Time, Target.Code) %>%
-   separate(Sync.Time, c("Min", "Sec", "Tenth")) %>%
-   transmute(time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + 
-               as.numeric(Tenth)/100, 
-               Target = Target.Code) %>% drop_na(time) -> dataF
- 
- #Creates sequence of tenths of second with no gaps from the first to the last tenth of second
- tenthSequence <- data.frame(time = seq(max(dataF$time) - dataF$time[1]) + dataF$time[1] - 1)
- 
- return(list(counter, dataF))
-}
-
-red <- intervalPrep('Red', 1)
-
-  
-
-
-##Create a time column with no gaps (all single values in tenths of seconds) 
-
-#Data frame with a counter for all tenths of seconds on the file
-counter_orange <- data.frame(time = seq(max(orange$time) - orange$time[1]) + orange$time[1] - 1)
-counter_blue <- data.frame(time = seq(max(blue$time) - blue$time[1]) + blue$time[1] - 1)
-counter_red <- data.frame(time = seq(max(red$time) - red$time[1]) + red$time[1] - 1)
-
-#Join data frames
-orange <- left_join(counter_orange, orange)
-blue <- left_join(counter_blue, blue)
-red <- left_join(counter_red, red)
-
-#Filling in missing target values
-for (i in 1:nrow(orange)) {
-  if (is.na(orange$Target[i])) {
-    orange$Target[i] <- orange$Target[i-1]
-  }
-}
-
-for (i in 1:nrow(blue)) {
-  if (is.na(blue$Target[i])) {
-    blue$Target[i] <- blue$Target[i-1]
-  }
-}
-
-for (i in 1:nrow(red)) {
-  if (is.na(red$Target[i])) {
-    red$Target[i] <- red$Target[i-1]
-  }
-}
-##Create time-series data frames containing the inner join of two (to remove target NAs)
-orangeBlue_ts <- inner_join(orange, blue, by = "time")
-orangeRed_ts <- inner_join(orange, red, by = "time")
-redBlue_tsb <- inner_join(orangeRed_ts, orangeBlue_ts, by = "time")
-redBlue_ts <- select(redBlue_tsb, time = time, Target.x = Target.y.x, Target.y = Target.y.y)
-
-##Create time-series data frames containing the inner join of three
-orangeBlueRed_ts <- inner_join(orangeBlue_ts, red, by = "time")
-orangeBlueRed_ts <- rename(orangeBlueRed_ts, Target.z = Target)
-
-
-#***************************************************
-#* Cross-Recurrence Quantification Analysis (CRQA) *
-#***************************************************
-
+library(roxygen2)
 library(crqa)
 
-crqa_orangeBlue <- crqa(ts1 = orangeBlue_ts$Target.x, ts2 = orangeBlue_ts$Target.y, delay = 0, embed = 0,  
-                        normalize = 0, rescale = 0, radius = 0.05, mindiagline = 2, minvertline = 2, tw = 0, 
-                        whiteline = FALSE, side = "both")
-crqa_orangeRed <- crqa(ts1 = orangeRed_ts$Target.x, ts2 = orangeRed_ts$Target.y, delay = 0, embed = 0,  
-                       normalize = 0, rescale = 0, radius = 0.05, mindiagline = 2, minvertline = 2, tw = 0, 
-                       whiteline = FALSE, side = "both")
-crqa_redBlue <- crqa(ts1 = redBlue_ts$Target.x, ts2 = redBlue_ts$Target.y, delay = 0, embed = 0,  
-                     normalize = 0, rescale = 0, radius = 0.05, mindiagline = 2, minvertline = 2, tw = 0, 
-                     whiteline = FALSE, side = "both")
-
-#Cross-recurrence plots
-
-outplot_orange_blue <- paste("orangeBlue", j, ".png", sep = "")
-outplot_orange_Red <- paste("orangeRed", j, ".png", sep = "")
-outplot_red_blue <- paste("redBlue", j, ".png", sep = "")
-
-png(filename = outplot_orange_blue)
-image(crqa_orangeBlue$RP)
-dev.off()
-
-png(filename = outplot_orange_Red)
-image(crqa_orangeRed$RP)
-dev.off()
-
-png(filename = outplot_red_blue)
-image(crqa_redBlue$RP)
-dev.off()
+#' prepInterval
+#' 
+#' Load the time interval and create a time series
+#' 
+#' @description  
+#' The prepInterval function loads the analysis interval (data frame), selects 
+#' the columns of interest (time and target code), and creates a continuous (at
+#' the level of tenths of second) time series of target codes.
+#' 
+#' @return 
+#' A time series of target codes
 
 
-#Cross-recurrence outcome measures
+prepInterval <- function(color,
+                         index) {
 
-outmeasures_orange_blue <- paste("orangeBlue", j, ".txt", sep = "")
-outmeasures_orange_Red <- paste("orangeRed", j, ".txt", sep = "")
-outmeasures_red_blue <- paste("redBlue", j, ".txt", sep = "")
+  fileName <- paste0(color, "_", index, ".csv")
+  read.csv(fileName, header = TRUE) %>%
+    select(Sync.Time, Target.Code) %>%
+    separate(Sync.Time, c("Min", "Sec", "Tenth")) %>%
+    transmute(time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + 
+              as.numeric(Tenth), 
+              Target = Target.Code) %>% drop_na(time) -> dataF
+ 
+  #Create a sequence of tenths of second with no gaps from the first to the last 
+  #tenth of second
+  tenthSequence <- data.frame(time = seq(max(dataF$time) - dataF$time[1]) +
+                               dataF$time[1] - 1)
+ 
+  #Create a data frame by joining tenthSequence and dataF. The new dataframe 
+  #contains a continuous time column (at the level of tenths of a second) from
+  #the beginning to the end of the time interval and an incomplete target code
+  #column 
+  timeSer <- left_join(tenthSequence, dataF, by = "time")
+ 
+  #Create the time series to use in the analysis by filling in missing target 
+  #values
+  for (i in 1:nrow(timeSer)) {
+    if (is.na(timeSer$Target[i])) {
+      timeSer$Target[i] <- timeSer$Target[i-1]
+    }
+  }
+ 
+  return(timeSer)
+}
 
-sink(outmeasures_orange_blue)
-crqa_orangeBlue[1:9]
-sink()
+prepInterval('Red', 1)
 
-sink(outmeasures_orange_Red)
-crqa_orangeRed[1:9]
-sink()
+  
+##Create time-series data frames containing the inner join of two (to remove target NAs)
+#orangeBlue_ts <- inner_join(orange, blue, by = "time")
+#orangeRed_ts <- inner_join(orange, red, by = "time")
+#redBlue_tsb <- inner_join(orangeRed_ts, orangeBlue_ts, by = "time")
+#redBlue_ts <- select(redBlue_tsb, time = time, Target.x = Target.y.x, Target.y = Target.y.y)
 
-sink(outmeasures_red_blue)
-crqa_redBlue[1:9]
-sink()
+##Create time-series data frames containing the inner join of three
+#orangeBlueRed_ts <- inner_join(orangeBlue_ts, red, by = "time")
+#orangeBlueRed_ts <- rename(orangeBlueRed_ts, Target.z = Target)
+
+
+#***************************************************
+#*  *
+#***************************************************
+
+#' applyCRQA
+#' 
+#' Apply a Cross-Recurrence Quantification Analysis
+#' 
+#' @description 
+#' 
+#' @return  
+
+applyCRQA <- function(index) {
+  
+  red    <- prepInterval('Red', index)
+  blue   <- prepInterval('Blue', index)
+  orange <- prepInterval('Orange', index)
+  
+  crqa_orangeBlue <- crqa(ts1 = orange$Target, ts2 = blue$Target, delay = 0, 
+                          embed = 0, normalize = 0, rescale = 0, radius = 0.05,
+                          mindiagline = 2, minvertline = 2, tw = 0, 
+                          whiteline = FALSE, side = "both")
+  
+  crqa_orangeRed <- crqa(ts1 = orange$Target, ts2 = red$Target, delay = 0, 
+                          embed = 0, normalize = 0, rescale = 0, radius = 0.05,
+                          mindiagline = 2, minvertline = 2, tw = 0, 
+                          whiteline = FALSE, side = "both")
+  
+  crqa_redBlue <- crqa(ts1 = red$Target, ts2 = blue$Target, delay = 0, 
+                          embed = 0, normalize = 0, rescale = 0, radius = 0.05,
+                          mindiagline = 2, minvertline = 2, tw = 0, 
+                          whiteline = FALSE, side = "both")
+
+  #Cross-recurrence plots
+  outplot_orange_blue <- paste0("orangeBlue_", index, ".png")
+  outplot_orange_Red  <- paste0("orangeRed_", index, ".png")
+  outplot_red_blue    <- paste0("redBlue_", index, ".png")
+
+  png(filename = outplot_orange_blue)
+  image(crqa_orangeBlue$RP)
+  dev.off()
+
+  png(filename = outplot_orange_Red)
+  image(crqa_orangeRed$RP)
+  dev.off()
+
+  png(filename = outplot_red_blue)
+  image(crqa_redBlue$RP)
+  dev.off()
+
+
+  #Cross-recurrence outcome measures
+  outmeasures_orange_blue <- paste0("orangeBlue_", index, ".txt")
+  outmeasures_orange_Red  <- paste0("orangeRed_", index, ".txt")
+  outmeasures_red_blue    <- paste0("redBlue_", index, ".txt")
+
+  sink(outmeasures_orange_blue)
+  crqa_orangeBlue[1:9]
+  sink()
+
+  sink(outmeasures_orange_Red)
+  crqa_orangeRed[1:9]
+  sink()
+
+  sink(outmeasures_red_blue)
+  crqa_redBlue[1:9]
+  sink()
 
 
 
