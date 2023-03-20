@@ -5,6 +5,32 @@ library(Cairo)
 library(roxygen2)
 library(crqa)
 
+
+#' main
+#' 
+#' Apply All Calculations for a Specific Index
+#' 
+#' @description 
+#' 
+#' @return  
+
+main <- function(index) {
+  
+  orangeRed    <- prepInterval('Orange', 'Red', index)
+  blueOrange   <- prepInterval('Blue', 'Orange', index)
+  blueRed      <- prepInterval('Blue', 'Red', index)
+  
+  crqaResults <- applyCRQA(blueOrange, orangeRed, blueRed, index)
+  
+  dcrpResults <- applyDCRP(blueOrange, orangeRed, blueRed, index)
+  
+  
+  
+}
+
+
+
+
 #' prepInterval
 #' 
 #' Load the time interval and create a time series
@@ -18,40 +44,60 @@ library(crqa)
 #' A time series of target codes
 
 
-prepInterval <- function(color,
+prepInterval <- function(color1,
+                         color2,
                          index) {
 
-  fileName <- paste0(color, "_", index, ".csv")
-  read.csv(fileName, header = TRUE) %>%
-    select(Sync.Time, Target.Code) %>%
-    separate(Sync.Time, c("Min", "Sec", "Tenth")) %>%
-    transmute(time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + 
-              as.numeric(Tenth), 
-              Target = Target.Code) %>% drop_na(time) -> dataF
+  fileName1 <- paste0(color1, "_w", color2, "_V1.csv")
+  read.csv(./inputData/fileName1, header = TRUE) %>%
+           filter(Index == index) %>%
+           select(Sync.Time, Target.Code) %>%
+           separate(Sync.Time, c("Min", "Sec", "Tenth")) %>%
+           transmute(time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + 
+                     as.numeric(substr(Tenth, 1, 1)), 
+                     Target = Target.Code) %>% drop_na(time) -> dataF1
+  
+  fileName2 <- paste0(color2, "_w", color1, "_V1.csv")
+  read.csv(fileName2, header = TRUE) %>%
+           filter(Index == index) %>%
+           select(Sync.Time, Target.Code) %>%
+           separate(Sync.Time, c("Min", "Sec", "Tenth")) %>%
+           transmute(time = as.numeric(Min)*600 + as.numeric(Sec)* 10 + 
+                     as.numeric(substr(Tenth, 1, 1)), 
+                     Target = Target.Code) %>% drop_na(time) -> dataF2
  
   #Create a sequence of tenths of second with no gaps from the first to the last 
   #tenth of second
-  tenthSequence <- data.frame(time = seq(max(dataF$time) - dataF$time[1]) +
-                               dataF$time[1] - 1)
+  tenthSequence1 <- data.frame(time = seq(max(dataF1$time) - dataF1$time[1]) +
+                               dataF1$time[1] - 1)
+  tenthSequence2 <- data.frame(time = seq(max(dataF2$time) - dataF2$time[1]) +
+                               dataF2$time[1] - 1)
  
   #Create a data frame by joining tenthSequence and dataF. The new dataframe 
   #contains a continuous time column (at the level of tenths of a second) from
   #the beginning to the end of the time interval and an incomplete target code
   #column 
-  timeSer <- left_join(tenthSequence, dataF, by = "time")
+  timeSer1 <- left_join(tenthSequence1, dataF1, by = "time")
+  timeSer2 <- left_join(tenthSequence2, dataF2, by = "time")
  
   #Create the time series to use in the analysis by filling in missing target 
   #values
-  for (i in 1:nrow(timeSer)) {
-    if (is.na(timeSer$Target[i])) {
-      timeSer$Target[i] <- timeSer$Target[i-1]
+  for (i in 1:nrow(timeSer1)) {
+    if (is.na(timeSer1$Target[i])) {
+      timeSer1$Target[i] <- timeSer1$Target[i-1]
     }
   }
- 
-  return(timeSer)
+  for (i in 1:nrow(timeSer2)) {
+    if (is.na(timeSer2$Target[i])) {
+      timeSer2$Target[i] <- timeSer2$Target[i-1]
+    }
+  }
+  
+  #Join both time series
+  timeSer <- inner_join(timeSer1, timeSer2, by = "time")
 }
 
-#prepInterval('Red', 1)
+#ts <- prepInterval('Red', 'Orange', 1)
 
   
 ##Create time-series data frames containing the inner join of two (to remove target NAs)
@@ -65,10 +111,6 @@ prepInterval <- function(color,
 #orangeBlueRed_ts <- rename(orangeBlueRed_ts, Target.z = Target)
 
 
-#***************************************************
-#*  *
-#***************************************************
-
 #' applyCRQA
 #' 
 #' Apply a Cross-Recurrence Quantification Analysis
@@ -77,88 +119,98 @@ prepInterval <- function(color,
 #' 
 #' @return  
 
-applyCRQA <- function(index) {
+applyCRQA <- function(blueOrange,
+                      orangeRed,
+                      blueRed,
+                      index) {
   
-  red    <- prepInterval('Red', index)
-  #blue   <- prepInterval('Blue', index)
-  orange <- prepInterval('Orange', index)
-  
-  #crqa_orangeBlue <- crqa(ts1 = orange$Target, ts2 = blue$Target, delay = 0,
-                          #embed = 0, normalize = 0, rescale = 0, radius = 0.05,
-                          # mindiagline = 2, minvertline = 2, tw = 0,
-                          # whiteline = FALSE, side = "both")
+ 
+  crqa_blueOrange <- crqa(ts1 = blueOrange$Target.x, ts2 = blueOrange$Target.y,
+                          delay = 0, embed = 0, normalize = 0, rescale = 0, 
+                          radius = 0.05, mindiagline = 2, minvertline = 2, 
+                          tw = 0, whiteline = FALSE, side = "both")
 
-  crqa_orangeRed <- crqa(ts1 = orange$Target, ts2 = red$Target, delay = 0,
-                         embed = 0, normalize = 0, rescale = 0, radius = 0.05,
-                         mindiagline = 2, minvertline = 2, tw = 0,
-                         whiteline = FALSE, side = "both")
+  crqa_orangeRed  <- crqa(ts1 = orangeRed$Target.x, ts2 = orangeRed$Target.y, 
+                          delay = 0, embed = 0, normalize = 0, rescale = 0, 
+                          radius = 0.05, mindiagline = 2, minvertline = 2,
+                          tw = 0, whiteline = FALSE, side = "both")
 
-  #crqa_redBlue   <- crqa(ts1 = red$Target, ts2 = blue$Target, delay = 0,
-                         # embed = 0, normalize = 0, rescale = 0, radius = 0.05,
-                         # mindiagline = 2, minvertline = 2, tw = 0,
-                         # whiteline = FALSE, side = "both")
+  crqa_blueRed    <- crqa(ts1 = blueRed$Target.x, ts2 = blueRed$Target.y, 
+                          delay = 0, embed = 0, normalize = 0, rescale = 0, 
+                          radius = 0.05, mindiagline = 2, minvertline = 2, 
+                          tw = 0, whiteline = FALSE, side = "both")
 
 
   #Create cross-recurrence plots
-  #outplot_orange_blue <- paste0("orangeBlue_", index, ".png")
-  outplot_orange_Red  <- paste0("orangeRed_", index, ".png")
-  #outplot_red_blue    <- paste0("redBlue_", index, ".png")
+  outplot_blueOrange <- paste0("blueOrange_", index, ".png")
+  outplot_orangeRed  <- paste0("orangeRed_", index, ".png")
+  outplot_blueRed    <- paste0("blueRed_", index, ".png")
 
-  # png(filename = outplot_orange_blue)
-  # image(crqa_orangeBlue$RP)
-  # dev.off()
+  png(filename = outplot_blueOrange)
+  RP1 <- as.matrix(crqa_blueOrange$RP)
+  z <- t(RP1[,ncol(RP1):1])
+  x <- seq(1:nrow(z))
+  y <- seq(1:ncol(z))
+  title <- paste0("Interval ", index, " CRQA Plot")
+  image(x, y, z, main = title,
+        col = gray.colors(2, start = 0, end = 1, rev = TRUE),
+        xlab = "Participant 2 Time (Tenths of a Second)",
+        ylab = "Participant 3 Time (Tenths of a Second)")
+  dev.off()
 
- png(filename = outplot_orange_Red)
- RP <- as.matrix(crqa_orangeRed$RP)
- z <- t(RP[,ncol(RP):1])
- x <- seq(1:nrow(z))
- y <- seq(1:ncol(z))
- title <- paste0("Interval ", index, " CRQA Plot")
- image(x, y, z, main = title, 
-       col = gray.colors(2, start = 0, end = 1, rev = TRUE),
-       xlab = "Participant 1 Time (Tenths of a Second)",
-       ylab = "Participant 2 Time (Tenths of a Second)")
- dev.off()
+  png(filename = outplot_orangeRed)
+  RP2 <- as.matrix(crqa_orangeRed$RP)
+  z <- t(RP2[,ncol(RP2):1])
+  x <- seq(1:nrow(z))
+  y <- seq(1:ncol(z))
+  title <- paste0("Interval ", index, " CRQA Plot")
+  image(x, y, z, main = title,
+        col = gray.colors(2, start = 0, end = 1, rev = TRUE),
+        xlab = "Participant 1 Time (Tenths of a Second)",
+        ylab = "Participant 2 Time (Tenths of a Second)")
+  dev.off()
 
- # png(filename = outplot_red_blue)
-  #image(crqa_redBlue$RP)
-  #dev.off()
+  png(filename = outplot_blueRed)
+  RP3 <- as.matrix(crqa_blueRed$RP)
+  z <- t(RP3[,ncol(RP3):1])
+  x <- seq(1:nrow(z))
+  y <- seq(1:ncol(z))
+  title <- paste0("Interval ", index, " CRQA Plot")
+  image(x, y, z, main = title,
+        col = gray.colors(2, start = 0, end = 1, rev = TRUE),
+        xlab = "Participant 1 Time (Tenths of a Second)",
+        ylab = "Participant 3 Time (Tenths of a Second)")
+  dev.off()
 
 
   #Compute cross-recurrence outcome measures
-  #outmeasures_orange_blue <- paste0("orangeBlue_", index, ".txt")
-   #outmeasures_orange_Red  <- paste0("orangeRed_", index, ".txt")
-  # outmeasures_red_blue    <- paste0("redBlue_", index, ".txt")
-
-  # sink(outmeasures_orange_blue)
-  # crqa_orangeBlue[1:9]
-  # sink()
-
-  # sink(outmeasures_orange_Red)
-  # crqa_orangeRed[1:9]
-  # sink()
-  # 
-  # sink(outmeasures_red_blue)
-  # crqa_redBlue[1:9]
-  # sink()
-#return(crqa_orangeRed)
-   
- #  RP <- crqa_orangeRed$RP
- #  par = list(unit = 100, labelx = "Time", labely = "Time",
- #             cols = "blue", pcex = 1, pch = 19,
- #             labax = seq(0, nrow(RP), 100),
- #             labay = seq(0, nrow(RP), 100),
- #             las = 1)
- #  
- # plotRP(RP, par)
-   
+  outmeasures_blueOrange <- paste0("blueOrange_", index, ".txt")
+  outmeasures_orangeRed  <- paste0("orangeRed_", index, ".txt")
+  outmeasures_blueRed    <- paste0("blueRed_", index, ".txt")
   
+  write.table(unlist(crqa_blueOrange[1:9]), file = outmeasures_blueOrange, 
+              col.names = FALSE)
+  write.table(unlist(crqa_orangeRed[1:9]), file = outmeasures_orangeRed, 
+              col.names = FALSE)
+  write.table(unlist(crqa_blueRed[1:9]), file = outmeasures_blueRed, 
+              col.names = FALSE)
+   
 }
 applyCRQA(1)
-#*****************************************************
-#* Diagonal Cross-Recurrence Profile (DCRP) Analysis *
-#*****************************************************
 
+#' applyDCRP
+#' 
+#' Apply a Diagonal Cross-Recurrence Profile Analysis
+#' 
+#' @description 
+#' 
+#' @return  
+
+applyDCRP <- function(blueOrange,
+                      orangeRed,
+                      blueRed,
+                      index) {
+  
 #Window size 100 tenths of second (lag around the main diagonal, 50 on each side)
 
 dcrp_orangeBlue <- drpdfromts(ts1 = orangeBlue_ts$Target.x, ts2 = orangeBlue_ts$Target.y, ws = 50,
