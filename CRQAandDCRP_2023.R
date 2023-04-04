@@ -24,8 +24,7 @@ main <- function(index) {
   
   dcrpResults <- applyDCRP(blueOrange, orangeRed, blueRed, index)
   
-  
-  
+  return(list(crqaResults, dcrpResults))
 }
 
 
@@ -213,24 +212,35 @@ applyDCRP <- function(blueOrange,
   
 #Window size 100 tenths of second (lag around the main diagonal, 50 on each side)
 
-dcrp_orangeBlue <- drpdfromts(ts1 = orangeBlue_ts$Target.x, ts2 = orangeBlue_ts$Target.y, ws = 50,
+dcrp_blueOrange <- drpdfromts(ts1 = blueOrange$Target.x, 
+                              ts2 = blueOrange$Target.y, ws = 50,
                               datatype = "categorical", radius = 0.05)
 
-dcrp_orangeRed <- drpdfromts(ts1 = orangeRed_ts$Target.x, ts2 = orangeRed_ts$Target.y, ws = 50,
+dcrp_orangeRed  <- drpdfromts(ts1 = orangeRed$Target.x, 
+                              ts2 = orangeRed$Target.y, ws = 50,
                               datatype = "categorical", radius = 0.05)
 
-dcrp_redBlue <- drpdfromts(ts1 = redBlue_ts$Target.x, ts2 = redBlue_ts$Target.y, ws = 50,
+dcrp_blueRed   <- drpdfromts(ts1 = blueRed$Target.x, 
+                              ts2 = blueRed$Target.y, ws = 50,
                               datatype = "categorical", radius = 0.05)
 
-wdrp_orangeBlue <- windowdrp(ts1 = orangeBlue_ts$Target.x, ts2 = orangeBlue_ts$Target.y, windowsize = 2300,
-                              datatype = "categorical", radius = 0.05,  delay = 0, embed = 0,  
-                             normalize = 0, rescale = 0, mindiagline = 2, minvertline = 2, lagwidth = 100)
+wdrp_blueOrange <- windowdrp(ts1 = blueOrange$Target.x, 
+                             ts2 = blueOrange$Target.y, windowsize = 2300,
+                             datatype = "categorical", radius = 0.05,
+                             delay = 0, embed = 0, normalize = 0, rescale = 0,
+                             mindiagline = 2, minvertline = 2, lagwidth = 100)
 
-wdrp_orangeRed <- windowdrp(ts1 = orangeRed_ts$Target.x, ts2 = orangeRed_ts$Target.y, ws = 50,
-                             datatype = "categorical", radius = 0.05)
+wdrp_orangeRed  <- windowdrp(ts1 = orangeRed$Target.x, 
+                             ts2 = orangeRed$Target.y, ws = 50,
+                             datatype = "categorical", radius = 0.05,
+                             delay = 0, embed = 0, normalize = 0, rescale = 0,
+                             mindiagline = 2, minvertline = 2, lagwidth = 100)
 
-wdrp_redBlue <- windowdrp(ts1 = redBlue_ts$Target.x, ts2 = redBlue_ts$Target.y, ws = 50,
-                           datatype = "categorical", radius = 0.05)
+wdrp_blueRed    <- windowdrp(ts1 = blueRed$Target.x, 
+                             ts2 = blueRed$Target.y, ws = 50,
+                             datatype = "categorical", radius = 0.05,
+                             delay = 0, embed = 0, normalize = 0, rescale = 0,
+                             mindiagline = 2, minvertline = 2, lagwidth = 100)
 
 #DCRP plots
 
