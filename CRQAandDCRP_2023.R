@@ -284,7 +284,7 @@ applyClustering <- function(){
   
   dfWide[,-1] <- scale(dfWide[,-1])
   dfNoNames1 <- select(dfWide, -1)
-  dfNoNames <- select(dfNoNames1, 1, 2, 3, 4, 5, 7, 9)
+  #dfNoNames <- select(dfNoNames1, 1, 2, 3, 4, 5, 7, 9)
   
   #K-Means Clustering
   #Optimal number of clusters
@@ -303,19 +303,34 @@ applyClustering <- function(){
   head(kmFinal, 10)
   
   #Hierarchical Clustering
-  hFinal <- hclust(dist(dfNoNames[, 1:5, 7]), method = "ward.D")
+  dfNoNames <- select(dfNoNames1, 8)
+  hFinal <- hclust(dist(dfNoNames), method = "ward.D")
+  #hFinal <- hclust(dist(dfNoNames1[, 1:5, 7]), method = "ward.D")
   plot(hFinal)
-  rect.hclust(hFinal, k=3)
+  rect.hclust(hFinal, k=2)
+  groups <- cutree(hFinal, k=2)
+  groups
   
-  groups <- cutree(hFinal, k=3)
+  #Density-Based Spatial Clustering (DBSCAN)
+  library(dbscan)
+  dfNoNames <- select(dfNoNames1, 7, 9)
+  m <- as.matrix(dfNoNames)
   
+  eps_plot <- kNNdistplot(m, k=3)
+  eps_plot %>% abline(h = 0.95, lty = 2)
+  db <- dbscan(m, eps = 0.95, minPts = 3)
+  db
 }
 
+#Feature (Variable) Selection
 
+#Dyad Plotting
+  x <- dfNoNames1$`"RR"`
+  y <- dfNoNames1$`"TT"`
+  plot(x, y)
+  
+#PCA
   
   
   
   
-  
-  
-}
