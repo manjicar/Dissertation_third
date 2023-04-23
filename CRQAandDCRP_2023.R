@@ -303,7 +303,7 @@ applyClustering <- function(){
   head(kmFinal, 10)
   
   #Hierarchical Clustering
-  dfNoNames <- select(dfNoNames1, 8)
+  dfNoNames <- select(dfNoNames1, -2, -8)
   hFinal <- hclust(dist(dfNoNames), method = "ward.D")
   #hFinal <- hclust(dist(dfNoNames1[, 1:5, 7]), method = "ward.D")
   plot(hFinal)
@@ -330,7 +330,17 @@ applyClustering <- function(){
   plot(x, y)
   
 #PCA
+  dfNoNames <- select(dfNoNames1, 1, 3:7, 9)
+  components <- prcomp(dfNoNames, scale = FALSE)
+  components$rotation <- -1*components$rotation
+  components$x <- -1*components$x
+  var_explained <- components$sdev^2 / sum(components$sdev^2)
   
-  
-  
-  
+  dfPCA <- components$x
+  dfPCA <- select(as.data.frame(dfPCA), 1:3)
+  hFinalPCA <- hclust(dist(dfPCA), method = "ward.D")
+  #hFinal <- hclust(dist(dfNoNames1[, 1:5, 7]), method = "ward.D")
+  plot(hFinalPCA)
+  rect.hclust(hFinalPCA, k=2)
+  groups <- cutree(hFinalPCA, k=2)
+  groups
