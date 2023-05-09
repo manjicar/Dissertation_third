@@ -25,7 +25,7 @@ main <- function(video, index) {
 }
 
 
-mapply(main, 1, 1:13)
+dcrpResults <- mapply(main, 1, 1:15)
 mapply(main, 2, 1:5)
 
 #' prepInterval
@@ -206,55 +206,54 @@ applyDCRP <- function(blueOrange,
                                ts2 = blueOrange$Target.y, windowsize = 50,
                                datatype = "continuous", radius = 0.05)
   
-  dcrp_blueOrange[3]
-  # dcrp_orangeRed  <- drpfromts(ts1 = orangeRed$Target.x, 
-  #                              ts2 = orangeRed$Target.y, windowsize = 50,
-  #                              datatype = "continuous", radius = 0.05)
-  # 
-  # dcrp_blueRed    <- drpfromts(ts1 = blueRed$Target.x, 
-  #                              ts2 = blueRed$Target.y, windowsize = 50,
-  #                              datatype = "continuous", radius = 0.05)
+  dcrp_orangeRed  <- drpfromts(ts1 = orangeRed$Target.x,
+                               ts2 = orangeRed$Target.y, windowsize = 50,
+                               datatype = "continuous", radius = 0.05)
+
+  dcrp_blueRed    <- drpfromts(ts1 = blueRed$Target.x,
+                               ts2 = blueRed$Target.y, windowsize = 50,
+                               datatype = "continuous", radius = 0.05)
 
 
 # #DCRP plots
-# 
-#   dcrpPlot_blueOrange <- paste("./outcomes/dcrp_blueOrange_V",
-#                                video, "_", index, ".png", sep = "")
-#   dcrpPlot_orangeRed  <- paste("./outcomes/dcrp_orangeRed_V",
-#                                video, "_", index, ".png", sep = "")
-#   dcrpPlot_blueRed    <- paste("./outcomes/dcrp_blueRed_V",
-#                                video, "_", index, ".png", sep = "")
-# 
-#   png(filename = dcrpPlot_blueOrange)
-#   plot(-50:50, dcrp_blueOrange$profile, type = "l", xlab = "Lag", ylab = "%REC")
-#   dev.off()
-# 
-#   png(filename = dcrpPlot_orangeRed)
-#   plot(-50:50, dcrp_orangeRed$profile, type = "l", xlab = "Lag", ylab = "%REC")
-#   dev.off()
-# 
-#   png(filename = dcrpPlot_blueRed)
-#   plot(-50:50, dcrp_blueRed$profile, type = "l", xlab = "Lag", ylab = "%REC")
-#   dev.off()
+
+  # dcrpPlot_blueOrange <- paste("./outcomes/dcrp_blueOrange_V",
+  #                              video, "_", index, ".png", sep = "")
+  # dcrpPlot_orangeRed  <- paste("./outcomes/dcrp_orangeRed_V",
+  #                              video, "_", index, ".png", sep = "")
+  # dcrpPlot_blueRed    <- paste("./outcomes/dcrp_blueRed_V",
+  #                              video, "_", index, ".png", sep = "")
+  # 
+  # png(filename = dcrpPlot_blueOrange)
+  # plot(-50:50, dcrp_blueOrange$profile, type = "l", xlab = "Lag", ylab = "%REC")
+  # dev.off()
+  # 
+  # png(filename = dcrpPlot_orangeRed)
+  # plot(-50:50, dcrp_orangeRed$profile, type = "l", xlab = "Lag", ylab = "%REC")
+  # dev.off()
+  # 
+  # png(filename = dcrpPlot_blueRed)
+  # plot(-50:50, dcrp_blueRed$profile, type = "l", xlab = "Lag", ylab = "%REC")
+  # dev.off()
 
 
   #DCRP outcome measures
-#   dcrpMeasures_blueOrange <- paste0("./outcomes/dcrp_blueOrange_V",
-#                                     video, "_", index, ".txt")
-#   dcrpMeasures_orangeRed  <- paste0("./outcomes/dcrp_orangeRed_V",
-#                                     video, "_", index, ".txt")
-#   dcrpMeasures_blueRed    <- paste0("./outcomes/dcrp_blueRed_V",
-#                                     video, "_", index, ".txt")
-#  
-# 
-#   write.table(unlist(dcrp_blueOrange[2:3]), file = dcrpMeasures_blueOrange,
-#               col.names = FALSE)
-#   write.table(unlist(dcrp_orangeRed[2:3]), file = dcrpMeasures_orangeRed,
-#               col.names = FALSE)
-#   write.table(unlist(dcrp_blueRed[2:3]), file = dcrpMeasures_blueRed,
-#               col.names = FALSE)
-#   
-#   write.csv(unlist(dcrp_blueOrange[2:3]), file = dcrpMeasures_blueOrange)
+  dcrpMeasures_blueOrange <- paste0("./outcomes/dcrp_blueOrange_V",
+                                    video, "_", index, ".txt")
+  dcrpMeasures_orangeRed  <- paste0("./outcomes/dcrp_orangeRed_V",
+                                    video, "_", index, ".txt")
+  dcrpMeasures_blueRed    <- paste0("./outcomes/dcrp_blueRed_V",
+                                    video, "_", index, ".txt")
+
+
+  write.table(unlist(dcrp_blueOrange[2:3]), file = dcrpMeasures_blueOrange,
+              col.names = FALSE)
+  write.table(unlist(dcrp_orangeRed[2:3]), file = dcrpMeasures_orangeRed,
+              col.names = FALSE)
+  write.table(unlist(dcrp_blueRed[2:3]), file = dcrpMeasures_blueRed,
+              col.names = FALSE)
+  #dcrpResults <- dcrp_blueOrange[2:3]
+  #write.csv(unlist(dcrp_blueOrange[2:3]), file = dcrpMeasures_blueOrange)
 }
 
 createDF <- function(){
@@ -267,9 +266,9 @@ createDF <- function(){
  dfLong <- list_of_files %>% set_names(.) %>% 
        map_df(read_table2, .id = "FileName", col_names = FALSE)
  colnames(dfLong) <- c('FileName', 'Measure', 'Value')
- dfLong %>% filter(!grepl('dcrp', FileName))  -> dfLongClean
- 
- dfWide <- pivot_wider(dfLongClean, names_from = Measure, values_from = Value)
+ #dfLong %>% filter(!grepl('dcrp', FileName))  -> dfLongClean
+ #dfWide <- pivot_wider(dfLongClean, names_from = Measure, values_from = Value)
+ dfWide <- pivot_wider(dfLong, names_from = Measure, values_from = Value)
 }
 
 applyClustering <- function(){
@@ -303,13 +302,34 @@ applyClustering <- function(){
   head(kmFinal, 10)
   
   #Hierarchical Clustering
-  dfNoNames <- select(dfNoNames1, -2, -8)
+  dfWide2 <- select(dfWide, 1:11)
+  dfWide2Top <- slice(dfWide2, 1:60)
+  dfWide2Top <- select(dfWide2Top, -11)
+  dfWide2Bottom <- slice(dfWide2, 61:120)
+  dfWide2Bottom <- select(dfWide2Bottom, 11)
+  dfWide3 <- cbind(dfWide2Top, dfWide2Bottom) 
+  dfWide3[,-1] <- scale(dfWide3[,-1])
+  dfNoNames1 <- select(dfWide3, -1)
+  #dfNoNames <- select(dfNoNames1, 1, 2, 3, 4, 5, 7, 9)
+  dfNoNames <- select(dfNoNames1, 6, 7)
   hFinal <- hclust(dist(dfNoNames), method = "ward.D")
-  #hFinal <- hclust(dist(dfNoNames1[, 1:5, 7]), method = "ward.D")
+  #hFinal <- hclust(dist(dfNoNames), method = "complete")
+  #hFinal <- hclust(dist(dfNoNames), method = "ward.D2")
   plot(hFinal)
   rect.hclust(hFinal, k=2)
   groups <- cutree(hFinal, k=2)
-  groups
+  dfNoNames$clust <- groups
+  write.csv(groups, "./outcomes/clust1.csv")
+  
+  #Hierarchical Clustering with pvclust
+  library(pvclust)
+  dfNoNames <- select(dfNoNames1, 6)
+  phFinal <- pvclust(dfNoNames, method.dist = "cor",
+                     method.hclust = "average", nboot = 10000,
+                     parallel = TRUE)
+  plot(phFinal)
+  pvrect(phFinal, alpha = 0.95)
+  print(phFinal, digits = 10)
   
   #Density-Based Spatial Clustering (DBSCAN)
   library(dbscan)

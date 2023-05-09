@@ -1,0 +1,2 @@
+"maxrec" 0.25
+"maxlag.0" 51
