@@ -217,24 +217,24 @@ applyDCRP <- function(blueOrange,
 
 # #DCRP plots
 
-  # dcrpPlot_blueOrange <- paste("./outcomes/dcrp_blueOrange_V",
-  #                              video, "_", index, ".png", sep = "")
-  # dcrpPlot_orangeRed  <- paste("./outcomes/dcrp_orangeRed_V",
-  #                              video, "_", index, ".png", sep = "")
-  # dcrpPlot_blueRed    <- paste("./outcomes/dcrp_blueRed_V",
-  #                              video, "_", index, ".png", sep = "")
-  # 
-  # png(filename = dcrpPlot_blueOrange)
-  # plot(-50:50, dcrp_blueOrange$profile, type = "l", xlab = "Lag", ylab = "%REC")
-  # dev.off()
-  # 
-  # png(filename = dcrpPlot_orangeRed)
-  # plot(-50:50, dcrp_orangeRed$profile, type = "l", xlab = "Lag", ylab = "%REC")
-  # dev.off()
-  # 
-  # png(filename = dcrpPlot_blueRed)
-  # plot(-50:50, dcrp_blueRed$profile, type = "l", xlab = "Lag", ylab = "%REC")
-  # dev.off()
+  dcrpPlot_blueOrange <- paste("./outcomes/dcrp_blueOrange_V",
+                               video, "_", index, ".png", sep = "")
+  dcrpPlot_orangeRed  <- paste("./outcomes/dcrp_orangeRed_V",
+                               video, "_", index, ".png", sep = "")
+  dcrpPlot_blueRed    <- paste("./outcomes/dcrp_blueRed_V",
+                               video, "_", index, ".png", sep = "")
+
+  png(filename = dcrpPlot_blueOrange)
+  plot(-50:50, dcrp_blueOrange$profile, type = "l", xlab = "Lag", ylab = "%REC")
+  dev.off()
+
+  png(filename = dcrpPlot_orangeRed)
+  plot(-50:50, dcrp_orangeRed$profile, type = "l", xlab = "Lag", ylab = "%REC")
+  dev.off()
+
+  png(filename = dcrpPlot_blueRed)
+  plot(-50:50, dcrp_blueRed$profile, type = "l", xlab = "Lag", ylab = "%REC")
+  dev.off()
 
 
   #DCRP outcome measures
@@ -345,9 +345,15 @@ applyClustering <- function(){
 #Feature (Variable) Selection
 
 #Dyad Plotting
-  x <- dfNoNames1$`"RR"`
-  y <- dfNoNames1$`"TT"`
+  x <- dfNoNames1$`"ENTR"`
+  y <- dfNoNames1$`"rENTR"`
   plot(x, y)
+  
+#Correlation
+  library(corrplot)
+  m <- cor(dfNoNames1)
+  corrplot(m, method = 'number', type = 'upper')
+  
   
 #PCA
   dfNoNames <- select(dfNoNames1, 1, 3:7, 9)
@@ -364,3 +370,31 @@ applyClustering <- function(){
   rect.hclust(hFinalPCA, k=2)
   groups <- cutree(hFinalPCA, k=2)
   groups
+  
+#Logistic Regression
+  library(car)
+  library(mlogit)
+  
+  dv <- read.csv("DV_051423.csv", header = TRUE, stringsAsFactors = TRUE)
+    iv <- dfNoNames1  
+  df <- cbind(dv, iv)  
+#Remove unwanted columns, including those highly correlated
+  dfClean <- select(df, 3:8, 12, 13)
+  names(dfClean) <- c('PI', 'DM', 'BL', 'RR', 'DET', 'NRLINE', 'rENTR', 'LAM')
+  
+  modelPower <- glm(PI ~ RR + DET + NRLINE + rENTR + LAM, data = dfClean, family = binomial)
+  summary(modelPower)
+  modelPowerrENTR <- glm(PI ~ rENTR, data = dfClean, family = binomial)
+  summary(modelPowerrENTR)
+ 
+  modelDecision <- glm(DM ~ RR + DET + NRLINE + rENTR + LAM, data = dfClean, family = binomial)
+  summary(modelDecision)
+  modelDecisionrENTR <- glm(DM ~ rENTR, data = dfClean, family = binomial)
+  summary(modelDecisionrENTR)
+ 
+  modelBody <- glm(BL ~ RR + DET + NRLINE + rENTR + LAM, data = dfClean, family = binomial)
+  summary(modelBody) 
+  modelBody <- glm(BL ~ LAM, data = dfClean, family = binomial)
+  summary(modelBody) 
+  
+  
