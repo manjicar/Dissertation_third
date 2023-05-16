@@ -397,4 +397,8 @@ applyClustering <- function(){
   modelBody <- glm(BL ~ LAM, data = dfClean, family = binomial)
   summary(modelBody) 
   
+#Dyad Plotting to look for non-linear relationships
+  x <- dfClean$`BL`
+  y <- dfClean$`LAM`
+  plot(x, y)
   
