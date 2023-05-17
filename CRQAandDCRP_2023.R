@@ -309,9 +309,13 @@ applyClustering <- function(){
   dfWide2Bottom <- select(dfWide2Bottom, 11)
   dfWide3 <- cbind(dfWide2Top, dfWide2Bottom) 
   dfWide3[,-1] <- scale(dfWide3[,-1])
-  dfNoNames1 <- select(dfWide3, -1)
+  dfNoNames2 <- select(dfWide3, -1)
+  maxlag <- read.csv("./inputData/maxlag.csv", header = TRUE)
+  maxlag1 <- select(maxlag, 3)
+  maxlag2 <- scale(maxlag1)
+  dfNoNames1 <- cbind(dfNoNames2, maxlag2)
   #dfNoNames <- select(dfNoNames1, 1, 2, 3, 4, 5, 7, 9)
-  dfNoNames <- select(dfNoNames1, 6, 7)
+  dfNoNames <- select(dfNoNames1, 11)
   hFinal <- hclust(dist(dfNoNames), method = "ward.D")
   #hFinal <- hclust(dist(dfNoNames), method = "complete")
   #hFinal <- hclust(dist(dfNoNames), method = "ward.D2")
@@ -379,8 +383,8 @@ applyClustering <- function(){
     iv <- dfNoNames1  
   df <- cbind(dv, iv)  
 #Remove unwanted columns, including those highly correlated
-  dfClean <- select(df, 3:8, 12, 13)
-  names(dfClean) <- c('PI', 'DM', 'BL', 'RR', 'DET', 'NRLINE', 'rENTR', 'LAM')
+  dfClean <- select(df, 3:8, 12, 13, 16)
+  names(dfClean) <- c('PI', 'DM', 'BL', 'RR', 'DET', 'NRLINE', 'rENTR', 'LAM', 'maxlag')
   
   modelPower <- glm(PI ~ RR + DET + NRLINE + rENTR + LAM, data = dfClean, family = binomial)
   summary(modelPower)
@@ -394,11 +398,11 @@ applyClustering <- function(){
  
   modelBody <- glm(BL ~ RR + DET + NRLINE + rENTR + LAM, data = dfClean, family = binomial)
   summary(modelBody) 
-  modelBody <- glm(BL ~ LAM, data = dfClean, family = binomial)
+  modelBody <- glm(BL ~ rENTR, data = dfClean, family = binomial)
   summary(modelBody) 
   
 #Dyad Plotting to look for non-linear relationships
   x <- dfClean$`BL`
-  y <- dfClean$`LAM`
+  y <- dfClean$`maxlag`
   plot(x, y)
   
