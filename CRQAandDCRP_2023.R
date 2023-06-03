@@ -402,7 +402,56 @@ applyClustering <- function(){
   summary(modelBody) 
   
 #Dyad Plotting to look for non-linear relationships
-  x <- dfClean$`BL`
-  y <- dfClean$`maxlag`
-  plot(x, y)
+  x <- dfClean$`DM`
+  y <- dfClean$`rENTR`
+  plot(y, x)
+  
+#Following stats.exchange.com/questions/181501
+  library(party)
+  cart.model <- ctree(DM ~ rENTR, dfClean)
+  windows()
+    plot(cart.model)
+    confusionMatrix(predict(cart.model), dfClean$DM)
+    
+  library(caret)
+  modelDecisionrENTR <- glm(DM ~ rENTR, data = dfClean, family = binomial)
+  modelDecisionrENTR.preds <- predict(modelDecisionrENTR, type = "response")
+  ord <- order(dfClean$rENTR)
+  dfClean2 <- dfClean[ord,]  
+  modelDecisionrENTR.preds <- modelDecisionrENTR.preds[ord]
+  
+  
+  
+  windows()
+  with(dfClean2, plot(rENTR, ifelse(DM=="Y", 1, 0),
+                      ylab="predicted probability of Y"))
+  lines(dfClean2$rENTR, modelDecisionrENTR.preds)  
+  
+  modelClass <- ifelse(modelDecisionrENTR.preds < .5, "N", "Y")
+  confusionMatrix(modelClass, dfClean2$DM)  
+  table(modelClass, dfClean2$DM)
+  
+  #Sin normalizar rENTR
+  library(dplyr)
+  dv2 <- select(dv, 4)
+  names(dv2) <- "DM"
+  iv2 <- select(dfWide2Top, 8)
+  names(iv2) <- "rENTR"
+  df2 <- cbind(dv2, iv2)
+  modelDecisionrENTR <- glm(DM ~ rENTR, data = df2, family = binomial)
+  summary(modelDecisionrENTR)
+  
+  modelDecisionrENTR.preds <- predict(modelDecisionrENTR, type = "response")
+  ord <- order(df2$rENTR)
+  df3 <- df2[ord,]  
+  modelDecisionrENTR.preds <- modelDecisionrENTR.preds[ord]
+  
+  windows()
+  with(df3, plot(rENTR, ifelse(DM=="Y", 1, 0),
+                      ylab="predicted probability of Y"))
+  lines(dfClean2$rENTR, modelDecisionrENTR.preds)  
+  
+  modelClass <- ifelse(modelDecisionrENTR.preds < .5, "N", "Y")
+  confusionMatrix(modelClass, dfClean2$DM)  
+  table(modelClass, df3$DM)
   
