@@ -382,6 +382,34 @@ applyClustering <- function(){
   dv <- read.csv("DV_051423.csv", header = TRUE, stringsAsFactors = TRUE)
     iv <- dfNoNames1  
   df <- cbind(dv, iv)  
+  
+#Logistic Regression Checking for multicollinearity
+  #*************************************************
+  #************************************************
+  library(dplyr)
+  library(car)
+  dfMult <- select(df, 3:14)
+  names(dfMult) <- c('PI', 'DM', 'BL', 'RR', 'DET', 'NRLINE', 'maxL', 'L', 'ENTR', 'rENTR', 'LAM', 'TT')
+  #Logistic Regression with different CRQA predictors
+  modelMult1 <- glm(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT, data = dfMult, family = binomial)
+  summary(modelMult1)
+    vif(modelMult1)
+  modelMult2 <- glm(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR, data = dfMult, family = binomial)
+  summary(modelMult2)
+  vif(modelMult2)
+  modelMult3 <- glm(DM ~ RR + DET + NRLINE + L + ENTR + rENTR, data = dfMult, family = binomial)
+  summary(modelMult3)
+  vif(modelMult3)  
+  modelMult4 <- glm(DM ~ RR + DET + NRLINE + maxL + ENTR + rENTR, data = dfMult, family = binomial)
+  summary(modelMult4)
+  vif(modelMult4)  
+  modelMult5 <- glm(DM ~ RR + NRLINE + L + ENTR + rENTR, data = dfMult, family = binomial)
+  summary(modelMult5)
+  vif(modelMult5)
+  modelMult6 <- glm(DM ~ RR + NRLINE + L + ENTR, data = dfMult, family = binomial)
+  summary(modelMult6)
+  vif(modelMult6)
+  
 #Remove unwanted columns, including those highly correlated
   dfClean <- select(df, 3:8, 12, 13, 16)
   names(dfClean) <- c('PI', 'DM', 'BL', 'RR', 'DET', 'NRLINE', 'rENTR', 'LAM', 'maxlag')
@@ -441,6 +469,10 @@ applyClustering <- function(){
   modelDecisionrENTR <- glm(DM ~ rENTR, data = df2, family = binomial)
   summary(modelDecisionrENTR)
   
+  x <- df2$`DM`
+  y <- df2$`rENTR`
+  plot(y, x)
+  
   modelDecisionrENTR.preds <- predict(modelDecisionrENTR, type = "response")
   ord <- order(df2$rENTR)
   df3 <- df2[ord,]  
@@ -454,4 +486,27 @@ applyClustering <- function(){
   modelClass <- ifelse(modelDecisionrENTR.preds < .5, "N", "Y")
   confusionMatrix(modelClass, dfClean2$DM)  
   table(modelClass, df3$DM)
+  
+#Using Ratio = DET/RR
+  library(dplyr)
+  dv3 <- select(dv, 3:5)
+  names(dv3) <- c("PI", "DM", "BL")
+  iv3 <- select(dfWide2Top, 2, 3)
+  names(iv3) <- c("DET", "RR")
+  iv3 <- mutate(iv3, RATIO = DET/RR)
+ 
+  df3 <- cbind(dv3, iv3)
+  modelDMRatio <- glm(DM ~ RATIO, data = df3, family = binomial)
+  summary(modelDMRatio)
+  modelBLRatio <- glm(BL ~ RATIO, data = df3, family = binomial)
+  summary(modelBLRatio)
+  modelPIRatio <- glm(PI ~ RATIO, data = df3, family = binomial)
+  summary(modelPIRatio)  
+#Computing rENTR?
+  iv4 <- select(dfWide2Top, 4, 7, 8)
+  names(iv4) <- c("NRLINE", "ENTR", "rENTR")
+  iv4 <- mutate(iv4, LOGNRLINE = log(NRLINE))
+  iv4 <- mutate(iv4, NEW = ENTR/LOGNRLINE)
+  iv4 <- mutate(iv4, NEW2 = ENTR/rENTR)
+  iv4 <- mutate(iv4, NEW3 = NEW/NEW2)  
   
