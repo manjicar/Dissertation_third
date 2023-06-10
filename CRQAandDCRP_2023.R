@@ -356,7 +356,7 @@ applyClustering <- function(){
 #Correlation
   library(corrplot)
   m <- cor(dfNoNames1)
-  corrplot(m, method = 'number', type = 'upper')
+  corrplot(m, method = 'number', order= 'hclust', type = 'full')
   
   
 #PCA
@@ -409,6 +409,25 @@ applyClustering <- function(){
   modelMult6 <- glm(DM ~ RR + NRLINE + L + ENTR, data = dfMult, family = binomial)
   summary(modelMult6)
   vif(modelMult6)
+  
+ 
+  # library(caret)
+  # 
+  # modelMult6.preds <- predict(modelMult6, type = "response")
+  # ord <- order(dfMult$RR)
+  # dfMult2 <- dfMult[ord,]  
+  # modelMult6.preds <- modelMult6.preds[ord]
+  # 
+  # 
+  # 
+  # windows()
+  # with(dfMult2, plot(RR, ifelse(DM=="Y", 1, 0),
+  #                     ylab="predicted probability of Y"))
+  # lines(dfMult2$RR, modelMult6.preds)  
+  # 
+  # modelClass <- ifelse(modelMult6.preds < .5, "N", "Y")
+  # confusionMatrix(modelClass, dfMult2$DM)  
+  # table(modelClass, dfMult2$DM)
   
 #Remove unwanted columns, including those highly correlated
   dfClean <- select(df, 3:8, 12, 13, 16)
@@ -487,26 +506,73 @@ applyClustering <- function(){
   confusionMatrix(modelClass, dfClean2$DM)  
   table(modelClass, df3$DM)
   
-#Using Ratio = DET/RR
-  library(dplyr)
-  dv3 <- select(dv, 3:5)
-  names(dv3) <- c("PI", "DM", "BL")
-  iv3 <- select(dfWide2Top, 2, 3)
-  names(iv3) <- c("DET", "RR")
-  iv3 <- mutate(iv3, RATIO = DET/RR)
- 
-  df3 <- cbind(dv3, iv3)
-  modelDMRatio <- glm(DM ~ RATIO, data = df3, family = binomial)
-  summary(modelDMRatio)
-  modelBLRatio <- glm(BL ~ RATIO, data = df3, family = binomial)
-  summary(modelBLRatio)
-  modelPIRatio <- glm(PI ~ RATIO, data = df3, family = binomial)
-  summary(modelPIRatio)  
-#Computing rENTR?
-  iv4 <- select(dfWide2Top, 4, 7, 8)
-  names(iv4) <- c("NRLINE", "ENTR", "rENTR")
-  iv4 <- mutate(iv4, LOGNRLINE = log(NRLINE))
-  iv4 <- mutate(iv4, NEW = ENTR/LOGNRLINE)
-  iv4 <- mutate(iv4, NEW2 = ENTR/rENTR)
-  iv4 <- mutate(iv4, NEW3 = NEW/NEW2)  
+  #Logistic Regression with different CRQA predictors without standardization
+  
+  dfNS <- cbind(dv, dfWide2Top) 
+  dfNS <- select(dfNS, -1, -2,-6)
+  names(dfNS) <- c('PI', 'DM', 'BL', 'RR', 'DET', 'NRLINE', 'maxL', 'L', 'ENTR', 'rENTR', 'LAM', 'TT')
+  
+  modelMult1NS <- glm(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT, data = dfNS, family = binomial)
+  summary(modelMult1NS)
+  vif(modelMult1NS)
+  modelMult2 <- glm(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR, data = dfMult, family = binomial)
+  summary(modelMult2)
+  vif(modelMult2)
+  modelMult3 <- glm(DM ~ RR + DET + NRLINE + L + ENTR + rENTR, data = dfMult, family = binomial)
+  summary(modelMult3)
+  vif(modelMult3)  
+  modelMult4 <- glm(DM ~ RR + DET + NRLINE + maxL + ENTR + rENTR, data = dfMult, family = binomial)
+  summary(modelMult4)
+  vif(modelMult4)  
+  modelMult5NS <- glm(DM ~ RR + NRLINE + L + ENTR + rENTR, data = dfNS, family = binomial)
+  summary(modelMult5NS)
+  vif(modelMult5NS)
+  modelMult6NS <- glm(DM ~ RR + NRLINE + L + ENTR, data = dfNS, family = binomial)
+  summary(modelMult6NS)
+  vif(modelMult6NS)
+  
+##Using PCA to address multicollinearity
+  
+  library(corrplot)
+  
+  dfNSPredictors <- select(dfWide2Top, -1)
+  m <- cor(dfNSPredictors)
+  corrplot(m, method = 'number', order= 'hclust', type = 'full')
+  
+  #Remove low correlated (r<.7) and vertical measures (DET, NRLINE, rENTR, LAM, TT)
+  dfNSPred <- select(dfNSPredictors, -2, -3, -7, -8, -9)    
+  components <- prcomp(dfNSPred, scale = TRUE)
+  plot(components)
+  summary(components)
+  #components$rotation <- -1*components$rotation
+  #components$x <- -1*components$x
+  #var_explained <- components$sdev^2 / sum(components$sdev^2)
+  
+  dfNSPCA <- components$x
+  dfNSPCA <- select(as.data.frame(dfNSPCA), 1:2)
+  
+  #Create new dataframe for logistic regression with PC1, PC2, DET, NRLINE, and rENTR
+
+  dfNSReduced <- select(dfNS, -4, -c(7:9), -11, -12)  
+  dfLR <- cbind(dfNSReduced, dfNSPCA)
+  
+  modelMult1PCA <- glm(DM ~ DET + NRLINE + rENTR + LAM + PC1 + PC2, data = dfLR, family = binomial)
+  summary(modelMult1PCA)
+  vif(modelMult1PCA)
+  
+  modelMult2PCA <- glm(DM ~ DET + NRLINE + rENTR + LAM + PC1, data = dfLR, family = binomial)
+  summary(modelMult2PCA)
+  vif(modelMult2PCA)
+  
+  modelMult3PCA <- glm(DM ~ DET + NRLINE + rENTR + PC1 + PC2, data = dfLR, family = binomial)
+  summary(modelMult3PCA)
+  vif(modelMult3PCA)
+  
+  modelMult4PCA <- glm(DM ~ DET + NRLINE + rENTR + PC1, data = dfLR, family = binomial)
+  summary(modelMult4PCA)
+  vif(modelMult4PCA)
+  
+  modelMult5PCA <- glm(DM ~ rENTR, data = dfLR, family = binomial)
+  summary(modelMult5PCA)
+  vif(modelMult5PCA)
   
