@@ -453,7 +453,7 @@ applyClustering <- function(){
   y <- dfClean$`rENTR`
   plot(y, x)
   
-#Following stats.exchange.com/questions/181501
+#Following stats.stackexchange.com/questions/181501
   library(party)
   cart.model <- ctree(DM ~ rENTR, dfClean)
   windows()
@@ -527,11 +527,12 @@ applyClustering <- function(){
   modelMult5NS <- glm(DM ~ RR + NRLINE + L + ENTR + rENTR, data = dfNS, family = binomial)
   summary(modelMult5NS)
   vif(modelMult5NS)
-  modelMult6NS <- glm(DM ~ RR + NRLINE + L + ENTR, data = dfNS, family = binomial)
+  modelMult6NS <- glm(DM ~ rENTR , data = dfNS, family = binomial)
   summary(modelMult6NS)
   vif(modelMult6NS)
-  
-##Using PCA to address multicollinearity
+  plot(modelMult6NS)
+
+  ##Using PCA to address multicollinearity
   
   library(corrplot)
   
@@ -556,7 +557,7 @@ applyClustering <- function(){
   dfNSReduced <- select(dfNS, -4, -c(7:9), -11, -12)  
   dfLR <- cbind(dfNSReduced, dfNSPCA)
   
-  modelMult1PCA <- glm(DM ~ DET + NRLINE + rENTR + LAM + PC1 + PC2, data = dfLR, family = binomial)
+  modelMult1PCA <- glm(DM ~ DET + NRLINE + rENTR  + PC1 + PC2, data = dfLR, family = binomial)
   summary(modelMult1PCA)
   vif(modelMult1PCA)
   
@@ -572,7 +573,89 @@ applyClustering <- function(){
   summary(modelMult4PCA)
   vif(modelMult4PCA)
   
-  modelMult5PCA <- glm(DM ~ rENTR, data = dfLR, family = binomial)
+  modelMult5PCA <- glm(DM ~ maxL , data = dfLR, family = binomial)
   summary(modelMult5PCA)
   vif(modelMult5PCA)
   
+  
+  #Support Vector Machines
+  library(caTools)
+  library(dplyr)
+  
+  set.seed(1234)
+  
+  dfMultDM <- select(dfMult, -1, -3)  #Already scaled
+  split <- sample.split(dfMultDM$DM, SplitRatio = 0.65)
+  dfMultDMTrain <- subset(dfMultDM, split == TRUE)
+  dfMultDMTest <- subset(dfMultDM, split == FALSE)
+
+  library(e1071)
+  classifier <- svm(formula = DM ~.,
+                    data = dfMultDMTrain,
+                    type = 'C-classification',
+                    kernel = 'polynomial',
+                    degree = 3)
+  prediction <- predict(classifier, newdata = dfMultDMTest)    
+
+  confMatr <- table(dfMultDMTest[,1], prediction)  
+  confMatr  
+  
+ #Random Forest
+  library(caTools)
+  library(dplyr)
+  library(randomForest)
+  
+  dfMultDM <- select(dfMult, -1, -3)  #Already scaled
+  split <- sample.split(dfMultDM$DM, SplitRatio = 0.65)
+  dfMultDMTrain <- subset(dfMultDM, split == TRUE)
+  dfMultDMTest <- subset(dfMultDM, split == FALSE)
+  
+  set.seed(1234)
+  modDM <- randomForest(DM ~ ., data = dfMultDMTrain,
+                        importance = TRUE)
+  modDMPred <- predict(modDM, newdata = dfMultDMTest, type = "response")
+  confMatr <- table(dfMultDMTest$DM, modDMPred)
+  
+  # library(randomForest)
+  # library(parsnip)
+  # library(tidymodels)
+  # 
+  # recipDM <- recipe(DM ~., data = dfMultDMTrain)
+  # 
+  # rf <- rand_forest() %>%
+  #   set_engine("randomForest", importance = TRUE, seed = 1234) %>%
+  #   set_mode("classification") 
+  # 
+  # library(workflows)
+  # rf_workflow <- workflow() %>%
+  #   add_model(rf) %>%
+  #   add_recipe(recipDM)
+  # 
+  # #D: Training the model
+  # rfModelDM <- rf_workflow %>% fit(data = dfMultDMTrain) 
+  # 
+  # #E: Making predictions on the testing set
+  # resultsDM <- data.frame(predicted = predict(rfModelDM, 
+  #                                     new_data = dfMultDMTest)$.pred_class,
+  #                         actual=dfMultDMTest$DM)
+  # 
+  # #F: Creating a confusion matrix
+  # confMatr <- table(results$actual, results$predicted)
+  # 
+  # #G: Creating the variable importance plot
+  # library(vip)
+  # library(ggplot2)
+  # rfModel %>% 
+  #   extract_fit_parsnip() %>%
+  #   vip(geom = "point", num_features = 30) + 
+  #   ggtitle("Predictor Importance") -> importance
+  
+  #CART
+  #Following stats.stackexchange.com/questions/181501
+  library(party)
+  dfNSDM <- select(dfNS, -1, -3)
+  cart.model <- ctree(DM ~ rENTR, dfNSDM)
+  windows()
+  plot(cart.model)
+  cMat <- confusionMatrix(predict(cart.model), dfClean$DM)
+  summary(cart.model)
