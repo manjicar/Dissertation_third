@@ -20,12 +20,12 @@ main <- function(video, index) {
   blueOrange   <- prepInterval('Blue', 'Orange', video, index)
   blueRed      <- prepInterval('Blue', 'Red', video, index)
   
-  #applyCRQA(blueOrange, orangeRed, blueRed, video, index)
-  applyDCRP(blueOrange, orangeRed, blueRed, video, index)
+  applyCRQA(blueOrange, orangeRed, blueRed, video, index)
+  #applyDCRP(blueOrange, orangeRed, blueRed, video, index)
 }
 
 
-dcrpResults <- mapply(main, 1, 1:15)
+ mapply(main, 1, 1:15)
 mapply(main, 2, 1:5)
 
 #' prepInterval
@@ -91,9 +91,14 @@ prepInterval <- function(color1,
     }
   }
   
+  #Slice first 20 seconds of each time series
+  timeSer1 <- slice_head(timeSer1, n = 200)
+  timeSer2 <- slice_head(timeSer2, n = 200)
+  
   #Join both time series
   timeSer <- inner_join(timeSer1, timeSer2, by = "time")
-}
+  write.csv(timeSer, "timeSer.csv")
+  }
 
 #' applyCRQA
 #' 
@@ -131,41 +136,41 @@ applyCRQA <- function(blueOrange,
   crqaPlot_orangeRed  <- paste0("./outcomes/crqa_orangeRed_V", video, "_", index, ".png")
   crqaPlot_blueRed    <- paste0("./outcomes/crqa_blueRed_V", video, "_", index, ".png")
 
-  png(filename = crqaPlot_blueOrange)
-  RP1 <- as.matrix(crqa_blueOrange$RP)
-  z <- t(RP1[,ncol(RP1):1])
-  x <- seq(1:nrow(z))
-  y <- seq(1:ncol(z))
-  title <- paste0("Interval V", video, "_", index, " CRQA Plot")
-  image(x, y, z, main = title,
-        col = gray.colors(2, start = 0, end = 1, rev = TRUE),
-        xlab = "Participant 2 Time (Tenths of a Second)",
-        ylab = "Participant 3 Time (Tenths of a Second)")
-  dev.off()
-
-  png(filename = crqaPlot_orangeRed)
-  RP2 <- as.matrix(crqa_orangeRed$RP)
-  z <- t(RP2[,ncol(RP2):1])
-  x <- seq(1:nrow(z))
-  y <- seq(1:ncol(z))
-  title <- paste0("Interval V", video, "_", index, " CRQA Plot")
-  image(x, y, z, main = title,
-        col = gray.colors(2, start = 0, end = 1, rev = TRUE),
-        xlab = "Participant 1 Time (Tenths of a Second)",
-        ylab = "Participant 2 Time (Tenths of a Second)")
-  dev.off()
-
-  png(filename = crqaPlot_blueRed)
-  RP3 <- as.matrix(crqa_blueRed$RP)
-  z <- t(RP3[,ncol(RP3):1])
-  x <- seq(1:nrow(z))
-  y <- seq(1:ncol(z))
-  title <- paste0("Interval V", video, "_", index, " CRQA Plot")
-  image(x, y, z, main = title,
-        col = gray.colors(2, start = 0, end = 1, rev = TRUE),
-        xlab = "Participant 1 Time (Tenths of a Second)",
-        ylab = "Participant 3 Time (Tenths of a Second)")
-  dev.off()
+  # png(filename = crqaPlot_blueOrange)
+  # RP1 <- as.matrix(crqa_blueOrange$RP)
+  # z <- t(RP1[,ncol(RP1):1])
+  # x <- seq(1:nrow(z))
+  # y <- seq(1:ncol(z))
+  # title <- paste0("Interval V", video, "_", index, " CRQA Plot")
+  # image(x, y, z, main = title,
+  #       col = gray.colors(2, start = 0, end = 1, rev = TRUE),
+  #       xlab = "Participant 2 Time (Tenths of a Second)",
+  #       ylab = "Participant 3 Time (Tenths of a Second)")
+  # dev.off()
+  # 
+  # png(filename = crqaPlot_orangeRed)
+  # RP2 <- as.matrix(crqa_orangeRed$RP)
+  # z <- t(RP2[,ncol(RP2):1])
+  # x <- seq(1:nrow(z))
+  # y <- seq(1:ncol(z))
+  # title <- paste0("Interval V", video, "_", index, " CRQA Plot")
+  # image(x, y, z, main = title,
+  #       col = gray.colors(2, start = 0, end = 1, rev = TRUE),
+  #       xlab = "Participant 1 Time (Tenths of a Second)",
+  #       ylab = "Participant 2 Time (Tenths of a Second)")
+  # dev.off()
+  # 
+  # png(filename = crqaPlot_blueRed)
+  # RP3 <- as.matrix(crqa_blueRed$RP)
+  # z <- t(RP3[,ncol(RP3):1])
+  # x <- seq(1:nrow(z))
+  # y <- seq(1:ncol(z))
+  # title <- paste0("Interval V", video, "_", index, " CRQA Plot")
+  # image(x, y, z, main = title,
+  #       col = gray.colors(2, start = 0, end = 1, rev = TRUE),
+  #       xlab = "Participant 1 Time (Tenths of a Second)",
+  #       ylab = "Participant 3 Time (Tenths of a Second)")
+  # dev.off()
 
 
   #Export cross-recurrence outcome measures
@@ -270,7 +275,7 @@ createDF <- function(){
  #dfWide <- pivot_wider(dfLongClean, names_from = Measure, values_from = Value)
  dfWide <- pivot_wider(dfLong, names_from = Measure, values_from = Value)
 }
-
+dfJune <- createDF()
 applyClustering <- function(){
   
   library(cluster)
@@ -653,9 +658,50 @@ applyClustering <- function(){
   #CART
   #Following stats.stackexchange.com/questions/181501
   library(party)
+  library(caret)
+  library(dplyr)
   dfNSDM <- select(dfNS, -1, -3)
   cart.model <- ctree(DM ~ rENTR, dfNSDM)
+  cart.model <- ctree(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT, dfNSDMJune)
   windows()
   plot(cart.model)
-  cMat <- confusionMatrix(predict(cart.model), dfClean$DM)
+  cMat <- confusionMatrix(predict(cart.model), dfNSDM$DM)
   summary(cart.model)
+write.csv(dfNSDM, "EyeTrackingData.csv")
+
+library(rpart)
+library(rpart.plot)
+tree2<- rpart(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT, dfNSDM)
+printcp(tree2)
+rpart.plot(tree2)
+p2 <- predict(tree2, dfNSDM, type = 'class')
+confusionMatrix(p2, dfNSDM$DM, positive = 'N')
+#June Analysis w/ 20-second intervals
+library(party)
+library(caret)
+library(dplyr)
+
+dfNSDMJune <- cbind(dv, dfJune)
+dfNSDMJune <- select(dfNSDMJune, -c(1:3, 5:6))
+names(dfNSDMJune) <- c('DM', 'RR', 'DET', 'NRLINE', 'maxL', 'L', 'ENTR', 'rENTR', 'LAM', 'TT')
+
+RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT 
+
+mLRJune <- glm(DM ~ TT , 
+               data = dfNSDMJune, family = binomial, na.action =  na.omit)
+summary(mLRJune)
+vif(modelMult6NS)
+plot(modelMult6NS)
+
+
+#cart.model <- ctree(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT , dfNSDMJune)
+library(rpart)
+library(rpart.plot)
+library(caret)
+tree<- rpart(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT, dfNSDMJune)
+printcp(tree)
+rpart.plot(tree)
+p <- predict(tree, dfNSDMJune, type = 'class')
+confusionMatrix(p, dfNSDMJune$DM, positive = 'N')
+
+
