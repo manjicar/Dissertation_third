@@ -698,10 +698,21 @@ plot(modelMult6NS)
 library(rpart)
 library(rpart.plot)
 library(caret)
-tree<- rpart(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT, dfNSDMJune)
+tree<- rpart(DM ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT, dfNSDMJune, method = 'class')
 printcp(tree)
 rpart.plot(tree)
 p <- predict(tree, dfNSDMJune, type = 'class')
 confusionMatrix(p, dfNSDMJune$DM, positive = 'N')
 
+#k-fold cross-validation
 
+control <- trainControl(method = "repeatedcv",
+                        number = 10,
+                        repeats = 2)
+tune_grid <- expand.grid(cp=c(0.001))
+validated_tree <- train(DM ~ RR + TT, data = dfNSDMJune,
+                        method ="rpart",
+                        trControl = control,
+                       # tuneGrid = tune_grid,
+                        na.action = na.pass)
+validated_tree
