@@ -22,10 +22,11 @@ main <- function(video, index) {
   
   applyCRQA(blueOrange, orangeRed, blueRed, video, index)
   #applyDCRP(blueOrange, orangeRed, blueRed, video, index)
+  
 }
 
 
- mapply(main, 1, 1:15)
+mapply(main, 1, 1:15)
 mapply(main, 2, 1:5)
 
 #' prepInterval
@@ -97,7 +98,7 @@ prepInterval <- function(color1,
   
   #Join both time series
   timeSer <- inner_join(timeSer1, timeSer2, by = "time")
-  write.csv(timeSer, "timeSer.csv")
+  #write.csv(timeSer, "timeSer.csv")
   }
 
 #' applyCRQA
@@ -119,22 +120,24 @@ applyCRQA <- function(blueOrange,
                           delay = 0, embed = 0, normalize = 0, rescale = 0, 
                           radius = 0.05, mindiagline = 2, minvertline = 2, 
                           tw = 0, whiteline = FALSE, side = "both")
+                          
 
   crqa_orangeRed  <- crqa(ts1 = orangeRed$Target.x, ts2 = orangeRed$Target.y, 
                           delay = 0, embed = 0, normalize = 0, rescale = 0, 
                           radius = 0.05, mindiagline = 2, minvertline = 2,
                           tw = 0, whiteline = FALSE, side = "both")
+                          
 
   crqa_blueRed    <- crqa(ts1 = blueRed$Target.x, ts2 = blueRed$Target.y, 
                           delay = 0, embed = 0, normalize = 0, rescale = 0, 
                           radius = 0.05, mindiagline = 2, minvertline = 2, 
                           tw = 0, whiteline = FALSE, side = "both")
-
+                         
 
   #Create cross-recurrence plots
-  crqaPlot_blueOrange <- paste0("./outcomes/crqa_blueOrange_V", video, "_", index, ".png")
-  crqaPlot_orangeRed  <- paste0("./outcomes/crqa_orangeRed_V", video, "_", index, ".png")
-  crqaPlot_blueRed    <- paste0("./outcomes/crqa_blueRed_V", video, "_", index, ".png")
+  # crqaPlot_blueOrange <- paste0("./outcomes/crqa_blueOrange_V", video, "_", index, ".png")
+  # crqaPlot_orangeRed  <- paste0("./outcomes/crqa_orangeRed_V", video, "_", index, ".png")
+  # crqaPlot_blueRed    <- paste0("./outcomes/crqa_blueRed_V", video, "_", index, ".png")
 
   # png(filename = crqaPlot_blueOrange)
   # RP1 <- as.matrix(crqa_blueOrange$RP)
@@ -181,11 +184,11 @@ applyCRQA <- function(blueOrange,
   crqaMeasures_blueRed    <- paste0("./outcomes/crqa_blueRed_V",
                                    video, "_", index, ".txt")
 
-  write.table(unlist(crqa_blueOrange[1:9]), file = crqaMeasures_blueOrange,
+  write.table(unlist(crqa_blueOrange[1:10]), file = crqaMeasures_blueOrange,
               col.names = FALSE)
-  write.table(unlist(crqa_orangeRed[1:9]), file = crqaMeasures_orangeRed,
+  write.table(unlist(crqa_orangeRed[1:10]), file = crqaMeasures_orangeRed,
               col.names = FALSE)
-  write.table(unlist(crqa_blueRed[1:9]), file = crqaMeasures_blueRed,
+  write.table(unlist(crqa_blueRed[1:10]), file = crqaMeasures_blueRed,
               col.names = FALSE)
   
 }
@@ -682,7 +685,8 @@ library(caret)
 library(dplyr)
 
 dfNSDMJune <- cbind(dv, dfJune)
-dfNSDMJune <- select(dfNSDMJune, -c(1:3, 5:6))
+dfNSDMJune <- select(dfNSDMJune, -c(1, 3, 5:6))
+write.csv(dfNSDMJune, "dfNSDMJune.csv")
 names(dfNSDMJune) <- c('DM', 'RR', 'DET', 'NRLINE', 'maxL', 'L', 'ENTR', 'rENTR', 'LAM', 'TT')
 
 RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT 
@@ -722,3 +726,25 @@ library(rattle)
 fancyRpartPlot(validated_tree$finalModel)
 plot(validated_tree$finalModel)
 text(validated_tree$finalModel)
+
+#Try CART with PI
+dfNSJune <- cbind(dv, dfJune)
+dfNSPIJune <- select(dfNSJune, -c(1:2, 4:6))
+names(dfNSPIJune) <- c('PI', 'RR', 'DET', 'NRLINE', 'maxL', 'L', 'ENTR', 'rENTR', 'LAM', 'TT')
+
+treePI<- rpart(PI ~ RR + DET + NRLINE + maxL + L + ENTR + rENTR + LAM + TT, dfNSPIJune, method = 'class')
+printcp(treePI)
+rpart.plot(treePI, type = 4)
+p <- predict(treePI, dfNSPIJune, type = 'class')
+confusionMatrix(p, dfNSPIJune$PI, positive = 'N')
+
+control <- trainControl(method = "repeatedcv",
+                        number = 10,
+                        repeats = 2)
+#tune_grid <- expand.grid(cp=c(0.000))
+validated_treePI <- train(PI ~ RR + TT, data = dfNSPIJune,
+                        method ="rpart",
+                        trControl = control,
+                        na.action = na.pass)
+validated_treePI
+print(validated_treePI)
